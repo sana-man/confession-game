@@ -23,6 +23,22 @@
       --accent: #b8860b;
       --mistake: #e53935;
     }
+    /* Desert Theme */
+    .desert-theme {
+      --bg: #2c2218 !important;
+      --text: #e8d5a5 !important;
+      --panel: #3a2f20 !important;
+      --border: #a68c5a !important;
+      --accent: #d4af37 !important;
+    }
+    /* Mountain Theme */
+    .mountain-theme {
+      --bg: #1a1f26 !important;
+      --text: #d0e0f0 !important;
+      --panel: #252c38 !important;
+      --border: #4a5a70 !important;
+      --accent: #6ba3d6 !important;
+    }
     body {
       background: var(--bg);
       color: var(--text);
@@ -177,7 +193,7 @@
 </div>
 
 <script>
-  // 🔥 YOUR FIREBASE CONFIG — COMPATIBLE WITH PLAIN HTML
+  // 🔥 YOUR FIREBASE CONFIG — COMPAT MODE
   const firebaseConfig = {
     apiKey: "AIzaSyB3Xw3uG61Fovn8O8Zha3U63DHQsmaELB8",
     authDomain: "confession-leaderboard.firebaseapp.com",
@@ -224,6 +240,17 @@
   // Initialize coin display
   coinCount.textContent = currentCoins;
 
+  // === THEMES ON LOAD ===
+  function applyPurchasedThemes() {
+    if (localStorage.getItem('owned_desertTheme') === 'true') {
+      document.body.classList.add('desert-theme');
+    }
+    if (localStorage.getItem('owned_mountainTheme') === 'true') {
+      document.body.classList.add('mountain-theme');
+    }
+  }
+  applyPurchasedThemes();
+
   // === COINS & SHOP ===
   function updateCoins(amount) {
     currentCoins += amount;
@@ -262,6 +289,12 @@
     if (currentCoins >= cost) {
       updateCoins(-cost);
       localStorage.setItem(`owned_${id}`, 'true');
+      // Apply theme immediately
+      if (id === 'desertTheme') {
+        document.body.classList.add('desert-theme');
+      } else if (id === 'mountainTheme') {
+        document.body.classList.add('mountain-theme');
+      }
       openShop();
     }
   }
@@ -286,11 +319,6 @@
   }
 
   function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
-
-  // === LOAD THEME ===
-  if (localStorage.getItem('theme') === 'light') {
-    document.body.classList.add('light-mode');
-  }
 
   // === AUDIO ===
   const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -408,12 +436,20 @@
     currentChaos = '';
     gameContainer.classList.add('hidden');
     mainMenu.classList.remove('hidden');
+    
+    // 🔥 FULL RESET
     totalMistakes = 0;
     sentencePool = [];
     allSentencesCompleted = false;
     document.getElementById('truthMessage').textContent = "";
     document.getElementById('chaosMessage').textContent = "";
     document.getElementById('userInput').style.display = 'inline-block';
+    document.getElementById('mistakeCounter').textContent = "Mistakes: 0";
+    
+    // Show confessional phase
+    document.getElementById('confessionPhase').classList.remove('hidden');
+    document.getElementById('acceptPhase').classList.add('hidden');
+    document.getElementById('denyPhase').classList.add('hidden');
   }
 
   function choosePath(accept) {
@@ -446,14 +482,14 @@
       return;
     }
 
-    const currentSentence = sentencePool.shift();
-    if (!currentSentence || typeof currentSentence !== 'string') {
-      console.error("No valid sentence to display!");
+    const sentence = sentencePool.shift();
+    if (!sentence || typeof sentence !== 'string') {
+      console.error("No valid sentence!");
       return;
     }
 
     document.getElementById('target').innerHTML = '';
-    for (let char of currentSentence) {
+    for (let char of sentence) {
       const span = document.createElement('span');
       span.textContent = char;
       document.getElementById('target').appendChild(span);
@@ -466,7 +502,7 @@
     setTimeout(() => document.getElementById('userInput').focus(), 100);
   }
 
-  // 🔥 FIXED INPUT LISTENER — COMPARES TO DOM, NOT GLOBAL VAR
+  // 🔥 FIXED INPUT LISTENER — READS FROM DOM
   document.getElementById('userInput').addEventListener('input', () => {
     if (allSentencesCompleted) return;
 
