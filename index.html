@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Last Confession: Truth or Trial</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
     body {
       background: #0d0d1a;
@@ -68,6 +71,21 @@
       background: #3f2a15;
     }
     .hidden { display: none; }
+    /* Leaderboard modal */
+    #leaderboard {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #0f0f1b;
+      padding: 20px;
+      border: 1px solid #5a452a;
+      border-radius: 8px;
+      color: #e0d7b8;
+      z-index: 1000;
+    }
+    #leaderboard button {
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
@@ -103,6 +121,21 @@
 </div>
 
 <script>
+  // 🔥 REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG 🔥
+  const firebaseConfig = {
+    apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    authDomain: "confession-leaderboard.firebaseapp.com",
+    databaseURL: "https://confession-leaderboard-default-rtdb.firebaseio.com",
+    projectId: "confession-leaderboard",
+    storageBucket: "confession-leaderboard.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcdef1234567890abcdef"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
   // === AUDIO ===
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
@@ -167,7 +200,7 @@
     voiceOsc.stop(audioCtx.currentTime + 0.7);
   }
 
-  // === SENTENCES (NO REPEATS) ===
+  // === SENTENCES ===
   const originalSentences = [
     "The truth is a mirror dropped from heaven.",
     "In silence, the mountain speaks.",
@@ -202,7 +235,45 @@
   let sentencePool = [];
   let allSentencesCompleted = false;
 
-  // === GAME FLOW ===
+  // === LEADERBOARD FUNCTIONS ===
+  function saveScore(name, mistakes) {
+    database.ref('leaderboard').push().set({
+      name: name.trim() || 'Anonymous',
+      mistakes: mistakes,
+      timestamp: Date.now()
+    });
+  }
+
+  function showLeaderboard() {
+    const lb = document.createElement('div');
+    lb.id = 'leaderboard';
+    lb.innerHTML = `
+      <h3>🏆 Hall of Confessors</h3>
+      <ol id="rankings"><li>Loading...</li></ol>
+      <button onclick="document.getElementById('leaderboard').remove()">Close</button>
+    `;
+    document.body.appendChild(lb);
+
+    database.ref('leaderboard')
+      .orderByChild('mistakes')
+      .limitToFirst(10)
+      .once('value', (snapshot) => {
+        const rankings = document.getElementById('rankings');
+        if (snapshot.exists()) {
+          rankings.innerHTML = '';
+          snapshot.forEach(child => {
+            const data = child.val();
+            const li = document.createElement('li');
+            li.textContent = `${data.name}: ${data.mistakes} mistakes`;
+            rankings.appendChild(li);
+          });
+        } else {
+          rankings.innerHTML = '<li>No confessions yet.</li>';
+        }
+      });
+  }
+
+  // === GAME LOGIC ===
   function choosePath(accept) {
     playWind();
     confessionPhase.classList.add('hidden');
@@ -210,29 +281,31 @@
     totalMistakes = 0;
     mistakeCounter.textContent = `Mistakes: ${totalMistakes}`;
     allSentencesCompleted = false;
+    currentChaos = '';
 
     if (accept) {
-      // Shuffle sentences once per session
-      sentencePool = [...originalSentences]
-        .sort(() => Math.random() - 0.5);
+      sentencePool = [...originalSentences].sort(() => Math.random() - 0.5);
       startTypingGame();
     } else {
       startChaosChallenge();
     }
   }
 
-  // === ACCEPT: NO REPEATS ===
   function startTypingGame() {
     if (sentencePool.length === 0) {
       allSentencesCompleted = true;
-      targetElement.innerHTML = "✨ You have faced all truths.<br>No more confessions remain.";
+      targetElement.innerHTML = "✨ You have faced all truths.";
+      
+      // Prompt for name and save
+      const name = prompt("Enter your name for the Hall of Confessors:");
+      if (name !== null) saveScore(name, totalMistakes);
+      
+      messageElement.innerHTML = `🕊️ Peace granted. <button onclick="showLeaderboard()">View Leaderboard</button>`;
       inputElement.style.display = 'none';
-      messageElement.textContent = "🕊️ Peace has been granted.";
-      messageElement.style.color = "#4caf50";
       return;
     }
 
-    currentSentence = sentencePool.shift(); // Take first (randomized)
+    currentSentence = sentencePool.shift();
     targetElement.innerHTML = '';
     inputElement.style.display = 'inline-block';
     for (let char of currentSentence) {
@@ -288,24 +361,20 @@
     }
   });
 
-  // === DENY: SAME SYMBOLS ON MISTAKE ===
   function startChaosChallenge() {
-    // Generate symbols ONCE per challenge
     if (!currentChaos) {
       currentChaos = '';
       for (let i = 0; i < 12; i++) {
         currentChaos += chaosSymbols.charAt(Math.floor(Math.random() * chaosSymbols.length));
       }
     }
-
-    const chaosDisplay = document.getElementById('chaosDisplay');
-    chaosDisplay.textContent = currentChaos;
-    const chaosInput = document.getElementById('chaosInput');
-    chaosInput.value = '';
-    chaosInput.disabled = false;
+    document.getElementById('chaosDisplay').textContent = currentChaos;
+    const input = document.getElementById('chaosInput');
+    input.value = '';
+    input.disabled = false;
     denyPhase.classList.remove('hidden');
     acceptPhase.classList.add('hidden');
-    setTimeout(() => chaosInput.focus(), 100);
+    setTimeout(() => input.focus(), 100);
 
     let timeLeft = 20;
     const timerMsg = document.getElementById('chaosMessage');
@@ -320,7 +389,7 @@
         clearInterval(chaosTimer);
         playWhispers();
         timerMsg.textContent = "💀 Time's up. The whispers claim you.";
-        chaosInput.disabled = true;
+        input.disabled = true;
         restartBtn.style.display = "inline-block";
       }
     }, 1000);
@@ -335,20 +404,16 @@
       document.getElementById('chaosInput').disabled = true;
       restartBtn.style.display = "inline-block";
     } else if (input.length > 0 && input.length <= currentChaos.length) {
-      // Mistake: don't reset symbols, just clear input after delay
       if (input !== currentChaos.substring(0, input.length)) {
         playWhispers();
-        setTimeout(() => {
-          document.getElementById('chaosInput').value = '';
-        }, 200);
+        setTimeout(() => { document.getElementById('chaosInput').value = ''; }, 200);
       }
     }
   });
 
-  // === RESTART ===
   function restartGame() {
     if (chaosTimer) clearInterval(chaosTimer);
-    currentChaos = ''; // Reset symbol set
+    currentChaos = '';
     confessionPhase.classList.remove('hidden');
     acceptPhase.classList.add('hidden');
     denyPhase.classList.add('hidden');
