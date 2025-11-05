@@ -3,108 +3,181 @@
 <head>
   <meta charset="UTF-8" />
   <title>Last Confession: Truth or Trial</title>
-  <!-- Firebase SDK - Compat mode for plain HTML -->
+  <!-- Firebase SDK - Compat mode -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
+    :root {
+      --bg: #0d0d1a;
+      --text: #e0d7b8;
+      --panel: #1a1a2e;
+      --border: #5a452a;
+      --accent: #d4af37;
+      --mistake: #ff5722;
+    }
+    .light-mode {
+      --bg: #f8f5f0;
+      --text: #2c1b0d;
+      --panel: #e8e0d0;
+      --border: #a9a27a;
+      --accent: #b8860b;
+      --mistake: #e53935;
+    }
     body {
-      background: #0d0d1a;
-      color: #e0d7b8;
+      background: var(--bg);
+      color: var(--text);
       font-family: 'Courier New', monospace;
       text-align: center;
-      padding: 40px;
+      padding: 0;
       margin: 0;
+      transition: background 0.3s, color 0.3s;
     }
-    #container {
+    #container, #mainMenu, #settingsModal, #shopModal, #leaderboard {
       max-width: 700px;
       margin: 0 auto;
+      padding: 40px 20px;
     }
-    #target, #chaosDisplay {
-      font-size: 22px;
-      line-height: 1.6;
-      margin: 30px 0;
+    .panel {
+      background: var(--panel);
       padding: 20px;
-      background: #1a1a2e;
-      border-left: 3px solid #5a3a1a;
-      border-radius: 5px;
-    }
-    #userInput, #chaosInput {
-      width: 90%;
-      padding: 12px;
-      font-size: 18px;
-      background: #0f0f1b;
-      color: #e0d7b8;
-      border: 1px solid #3a3a5a;
-      border-radius: 4px;
-      outline: none;
-    }
-    .correct { color: #4caf50; }
-    .error { color: #f44336; }
-    h1 {
-      color: #d4af37;
-      text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-    }
-    #mistakeCounter {
-      margin: 15px 0;
-      font-size: 16px;
-      color: #ff5722;
+      border-radius: 8px;
+      border-left: 3px solid var(--border);
+      margin: 20px 0;
     }
     button {
       background: #2c1b0d;
       color: #e0d7b8;
-      border: 1px solid #5a452a;
+      border: 1px solid var(--border);
       padding: 10px 20px;
       margin: 8px;
       font-family: inherit;
       cursor: pointer;
       border-radius: 4px;
     }
+    .light-mode button {
+      background: #e0d7b8;
+      color: #2c1b0d;
+    }
     button:hover { background: #3f2a15; }
+    .light-mode button:hover { background: #d0c5a0; }
+    #target, #chaosDisplay { font-size: 20px; line-height: 1.6; }
+    input {
+      width: 90%;
+      padding: 12px;
+      font-size: 18px;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      outline: none;
+    }
+    .correct { color: #4caf50; }
+    .error { color: #f44336; }
+    #mistakeCounter { margin: 15px 0; font-size: 16px; color: var(--mistake); }
     .hidden { display: none; }
-    #leaderboard {
+    .modal {
       position: fixed;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: #0f0f1b;
+      background: var(--panel);
       padding: 20px;
-      border: 1px solid #5a452a;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      color: #e0d7b8;
       z-index: 1000;
+      color: var(--text);
+      width: 90%;
+      max-width: 500px;
     }
+    .coins-display {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 15px 0;
+      color: var(--accent);
+    }
+    .item { padding: 10px; border-bottom: 1px solid var(--border); }
+    .item button { margin: 5px; }
   </style>
 </head>
 <body>
 
-<div id="container">
+<!-- MAIN MENU -->
+<div id="mainMenu">
   <h1>🕯️ Last Confession: Truth or Trial</h1>
+  <p style="font-style:italic">A ritual of truth, error, and redemption</p>
+  
+  <div class="coins-display">🪙 Coins: <span id="coinCount">0</span></div>
 
+  <button onclick="startGame()">▶️ Enter the Confessional</button>
+  <button onclick="showLeaderboard()">🏆 Hall of Confessors</button>
+  <button onclick="openSettings()">⚙️ Settings</button>
+  <button onclick="openShop()">🛒 Shop</button>
+
+  <p style="margin-top: 40px; font-size: 14px;">
+    Created by <strong>Sana</strong> • Morocco
+  </p>
+</div>
+
+<!-- GAME CONTAINER -->
+<div id="gameContainer" class="hidden">
+  <!-- Confessional -->
   <div id="confessionPhase">
+    <h2>🕯️ Last Confession</h2>
     <p><em>"You know what you did... Do you accept your truth?"</em></p>
     <button onclick="choosePath(true)">✅ I Accept — Face the Truth</button>
     <button onclick="choosePath(false)">❌ I Deny — Test My Will</button>
+    <button onclick="returnToMenu()">← Exit to Menu</button>
   </div>
 
+  <!-- Accept Path -->
   <div id="acceptPhase" class="hidden">
     <p>Type the sentence exactly. One mistake? Start over.</p>
     <div id="target"></div>
     <input type="text" id="userInput" placeholder="Start typing..." autocomplete="off" />
     <div id="mistakeCounter">Mistakes: 0</div>
     <div id="truthMessage"></div>
+    <button onclick="returnToMenu()">← Exit to Menu</button>
   </div>
 
+  <!-- Deny Path -->
   <div id="denyPhase" class="hidden">
     <p><strong>Punishment:</strong> Type the symbols before time runs out... (20 seconds)</p>
     <div id="chaosDisplay"></div>
     <input type="text" id="chaosInput" placeholder="Type the symbols..." autocomplete="off" />
     <div id="chaosMessage"></div>
+    <button onclick="returnToMenu()">← Exit to Menu</button>
   </div>
+</div>
 
-  <button id="restartBtn" class="hidden" onclick="restartGame()">↺ Return to Confessional</button>
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal hidden">
+  <h3>⚙️ Settings</h3>
+  <div>
+    <label>Volume: <span id="volumeValue">50%</span></label><br>
+    <input type="range" id="volumeSlider" min="0" max="100" value="50" style="width:80%">
+  </div>
+  <div style="margin:15px 0;">
+    <button onclick="toggleTheme()">🌓 Toggle Light/Dark Mode</button>
+  </div>
+  <button onclick="closeSettings()">Close</button>
+</div>
+
+<!-- SHOP MODAL -->
+<div id="shopModal" class="modal hidden">
+  <h3>🛒 Confessional Shop</h3>
+  <div class="coins-display">🪙 Your Coins: <span id="shopCoinCount">0</span></div>
+  <div id="shopItems"></div>
+  <button onclick="closeShop()">Close</button>
+</div>
+
+<!-- LEADERBOARD MODAL -->
+<div id="leaderboard" class="modal hidden">
+  <h3>🏆 Hall of Confessors</h3>
+  <ol id="rankings"><li>Loading...</li></ol>
+  <button onclick="document.getElementById('leaderboard').classList.add('hidden')">Close</button>
 </div>
 
 <script>
-  // 🔥 YOUR FIREBASE CONFIG (from console) 🔥
+  // 🔥 FIREBASE CONFIG
   const firebaseConfig = {
     apiKey: "AIzaSyB3Xw3uG61Fovn8O8Zha3U63DHQsmaELB8",
     authDomain: "confession-leaderboard.firebaseapp.com",
@@ -115,30 +188,122 @@
     appId: "1:437907861763:web:ff1bae3ee8f12a736ff936",
     measurementId: "G-BHMXGV0DE9"
   };
-
-  // Initialize Firebase (compat mode for HTML)
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
+
+  // === ANTI-CHEAT: DISABLE COPY/PASTE ===
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && ['c','v','x'].includes(e.key.toLowerCase())) {
+      e.preventDefault();
+    }
+  });
+  document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('paste', e => e.preventDefault());
+    input.addEventListener('copy', e => e.preventDefault());
+    input.addEventListener('cut', e => e.preventDefault());
+  });
+
+  // === STATE ===
+  let audioVolume = 0.5;
+  let totalMistakes = 0;
+  let currentCoins = parseInt(localStorage.getItem('playerCoins') || '0');
+  let sentencePool = [];
+  let currentChaos = '';
+  let chaosTimer = null;
+  let allSentencesCompleted = false;
+
+  // === DOM ===
+  const mainMenu = document.getElementById('mainMenu');
+  const gameContainer = document.getElementById('gameContainer');
+  const coinCount = document.getElementById('coinCount');
+  const shopCoinCount = document.getElementById('shopCoinCount');
+  const settingsModal = document.getElementById('settingsModal');
+  const shopModal = document.getElementById('shopModal');
+
+  // === COINS & SHOP ===
+  function updateCoins(amount) {
+    currentCoins += amount;
+    if (currentCoins < 0) currentCoins = 0;
+    localStorage.setItem('playerCoins', currentCoins);
+    coinCount.textContent = currentCoins;
+    shopCoinCount.textContent = currentCoins;
+  }
+
+  const shopItems = [
+    { id: 'desertTheme', name: 'Desert Theme', cost: 20, desc: 'Golden sands & silence' },
+    { id: 'mountainTheme', name: 'Mountain Theme', cost: 30, desc: 'Cold stone & wind' },
+    { id: 'noMistake', name: 'Skip One Mistake', cost: 40, desc: 'Redeem if you err' },
+    { id: 'extraTime', name: 'Extra 5s in Deny', cost: 25, desc: '+5 seconds in chaos' }
+  ];
+
+  function openShop() {
+    shopCoinCount.textContent = currentCoins;
+    let html = '';
+    shopItems.forEach(item => {
+      const owned = localStorage.getItem(`owned_${item.id}`) === 'true';
+      const btn = owned ? '✅ Owned' : `💰 ${item.cost} - Buy`;
+      const disabled = owned || currentCoins < item.cost ? 'disabled' : '';
+      html += `
+        <div class="item">
+          <strong>${item.name}</strong><br>
+          <em>${item.desc}</em><br>
+          <button ${disabled} onclick="buyItem('${item.id}', ${item.cost})">${btn}</button>
+        </div>
+      `;
+    });
+    document.getElementById('shopItems').innerHTML = html;
+    shopModal.classList.remove('hidden');
+  }
+
+  function buyItem(id, cost) {
+    if (currentCoins >= cost) {
+      updateCoins(-cost);
+      localStorage.setItem(`owned_${id}`, 'true');
+      openShop(); // refresh
+    }
+  }
+
+  function closeShop() { shopModal.classList.add('hidden'); }
+
+  // === SETTINGS ===
+  document.getElementById('volumeSlider').addEventListener('input', (e) => {
+    audioVolume = e.target.value / 100;
+    document.getElementById('volumeValue').textContent = `${e.target.value}%`;
+  });
+
+  function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+  }
+
+  function openSettings() {
+    document.getElementById('volumeSlider').value = audioVolume * 100;
+    document.getElementById('volumeValue').textContent = `${Math.round(audioVolume * 100)}%`;
+    settingsModal.classList.remove('hidden');
+  }
+
+  function closeSettings() { settingsModal.classList.add('hidden'); }
+
+  // === THEME ON LOAD ===
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-mode');
+  }
 
   // === AUDIO ===
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
 
-  function initAudio() {
-    if (!audioCtx) audioCtx = new AudioContext();
-  }
+  function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); }
 
   function playWind() {
     initAudio();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(30, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    setTimeout(() => osc.stop(), 2500);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(30, audioCtx.currentTime);
+    gain.gain.setValueAtTime(audioVolume * 0.16, audioCtx.currentTime);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); setTimeout(() => osc.stop(), 2500);
   }
 
   function playChoir() {
@@ -148,12 +313,10 @@
       const gain = audioCtx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.setValueAtTime(audioVolume * 0.15, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 2);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 2);
     });
   }
 
@@ -167,21 +330,18 @@
     }
     noise.buffer = buffer;
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-    noise.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(audioVolume * 0.4, audioCtx.currentTime);
+    noise.connect(gain); gain.connect(audioCtx.destination);
     noise.start();
     
     const voiceOsc = audioCtx.createOscillator();
     voiceOsc.frequency.setValueAtTime(400, audioCtx.currentTime);
     voiceOsc.type = 'sine';
     const voiceGain = audioCtx.createGain();
-    voiceGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    voiceGain.gain.setValueAtTime(audioVolume * 0.1, audioCtx.currentTime);
     voiceGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
-    voiceOsc.connect(voiceGain);
-    voiceGain.connect(audioCtx.destination);
-    voiceOsc.start();
-    voiceOsc.stop(audioCtx.currentTime + 0.7);
+    voiceOsc.connect(voiceGain); voiceGain.connect(audioCtx.destination);
+    voiceOsc.start(); voiceOsc.stop(audioCtx.currentTime + 0.7);
   }
 
   // === GAME DATA ===
@@ -199,53 +359,27 @@
     "The river does not apologize for its path.",
     "Your silence is louder than your words."
   ];
-
   const chaosSymbols = "!@#$%^&*()_+-=[]{}|;:,.<>?~`1234567890";
 
-  // === DOM ===
-  const confessionPhase = document.getElementById('confessionPhase');
-  const acceptPhase = document.getElementById('acceptPhase');
-  const denyPhase = document.getElementById('denyPhase');
-  const restartBtn = document.getElementById('restartBtn');
-  const targetElement = document.getElementById('target');
-  const inputElement = document.getElementById('userInput');
-  const mistakeCounter = document.getElementById('mistakeCounter');
-  const messageElement = document.getElementById('truthMessage');
-
-  let currentSentence = '';
-  let currentChaos = '';
-  let chaosTimer = null;
-  let totalMistakes = 0;
-  let sentencePool = [];
-  let allSentencesCompleted = false;
-
   // === LEADERBOARD ===
-  function saveScore(name, mistakes) {
+  function saveScore(name, mistakes, coinsEarned) {
     database.ref('leaderboard').push().set({
       name: name.trim() || 'Anonymous',
       mistakes: mistakes,
+      coins: coinsEarned,
       timestamp: Date.now()
     });
+    updateCoins(coinsEarned);
   }
 
   function showLeaderboard() {
-    const existing = document.getElementById('leaderboard');
-    if (existing) existing.remove();
-
-    const lb = document.createElement('div');
-    lb.id = 'leaderboard';
-    lb.innerHTML = `
-      <h3>🏆 Hall of Confessors</h3>
-      <ol id="rankings"><li>Loading...</li></ol>
-      <button onclick="document.getElementById('leaderboard').remove()">Close</button>
-    `;
-    document.body.appendChild(lb);
-
+    document.getElementById('leaderboard').classList.remove('hidden');
+    const rankings = document.getElementById('rankings');
+    rankings.innerHTML = '<li>Loading...</li>';
     database.ref('leaderboard')
       .orderByChild('mistakes')
       .limitToFirst(10)
       .once('value', (snapshot) => {
-        const rankings = document.getElementById('rankings');
         rankings.innerHTML = '';
         if (snapshot.exists()) {
           snapshot.forEach(child => {
@@ -261,12 +395,31 @@
   }
 
   // === GAME LOGIC ===
+  function startGame() {
+    mainMenu.classList.add('hidden');
+    gameContainer.classList.remove('hidden');
+    coinCount.textContent = currentCoins;
+    playWind();
+  }
+
+  function returnToMenu() {
+    if (chaosTimer) clearInterval(chaosTimer);
+    currentChaos = '';
+    gameContainer.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+    // reset game state
+    totalMistakes = 0;
+    sentencePool = [];
+    allSentencesCompleted = false;
+    document.getElementById('truthMessage').textContent = "";
+    document.getElementById('chaosMessage').textContent = "";
+    document.getElementById('userInput').style.display = 'inline-block';
+  }
+
   function choosePath(accept) {
     playWind();
-    confessionPhase.classList.add('hidden');
-    restartBtn.classList.remove('hidden');
     totalMistakes = 0;
-    mistakeCounter.textContent = `Mistakes: ${totalMistakes}`;
+    document.getElementById('mistakeCounter').textContent = `Mistakes: ${totalMistakes}`;
     allSentencesCompleted = false;
     currentChaos = '';
 
@@ -281,42 +434,49 @@
   function startTypingGame() {
     if (sentencePool.length === 0) {
       allSentencesCompleted = true;
-      targetElement.innerHTML = "✨ You have faced all truths.";
+      document.getElementById('target').innerHTML = "✨ You have faced all truths.";
+      const bonus = totalMistakes === 0 ? 10 : 0;
+      const coinsEarned = 50 + bonus;
       const name = prompt("Enter your name for the Hall of Confessors:");
-      if (name !== null && name.trim() !== "") {
-        saveScore(name, totalMistakes);
+      if (name !== null) {
+        saveScore(name, totalMistakes, coinsEarned);
         setTimeout(() => {
-          messageElement.innerHTML = `🕊️ Peace granted. <button onclick="showLeaderboard()">View Leaderboard</button>`;
-          inputElement.style.display = 'none';
+          document.getElementById('truthMessage').innerHTML = `🕊️ Peace granted. +${coinsEarned} coins!`;
+          document.getElementById('userInput').style.display = 'none';
         }, 500);
       } else {
-        messageElement.textContent = "🕊️ Peace granted.";
-        inputElement.style.display = 'none';
+        document.getElementById('truthMessage').textContent = "🕊️ Peace granted.";
+        document.getElementById('userInput').style.display = 'none';
       }
       return;
     }
 
-    currentSentence = sentencePool.shift();
-    targetElement.innerHTML = '';
-    inputElement.style.display = 'inline-block';
+    const currentSentence = sentencePool.shift();
+    document.getElementById('target').innerHTML = '';
     for (let char of currentSentence) {
       const span = document.createElement('span');
       span.textContent = char;
-      targetElement.appendChild(span);
+      document.getElementById('target').appendChild(span);
     }
-    inputElement.value = '';
-    acceptPhase.classList.remove('hidden');
-    denyPhase.classList.add('hidden');
-    setTimeout(() => inputElement.focus(), 100);
+    document.getElementById('userInput').value = '';
+    document.getElementById('acceptPhase').classList.remove('hidden');
+    document.getElementById('denyPhase').classList.add('hidden');
+    document.getElementById('confessionPhase').classList.add('hidden');
+    setTimeout(() => document.getElementById('userInput').focus(), 100);
   }
 
-  inputElement.addEventListener('input', () => {
+  document.getElementById('userInput').addEventListener('input', () => {
     if (allSentencesCompleted) return;
-    const userInput = inputElement.value;
-    const spans = targetElement.querySelectorAll('span');
+    const input = document.getElementById('userInput');
+    const userInput = input.value;
+    const spans = document.getElementById('target').querySelectorAll('span');
     spans.forEach(span => span.classList.remove('correct', 'error'));
 
     let hasError = false;
+    const currentSentence = sentencePool.length < 11 ? 
+      originalSentences.find(s => s.includes(spans[0]?.textContent)) : 
+      sentencePool[0] || spans.map(s => s.textContent).join('');
+    
     for (let i = 0; i < currentSentence.length; i++) {
       if (i < userInput.length) {
         if (userInput[i] === currentSentence[i]) {
@@ -330,23 +490,23 @@
 
     if (hasError) {
       totalMistakes++;
-      mistakeCounter.textContent = `Mistakes: ${totalMistakes}`;
+      document.getElementById('mistakeCounter').textContent = `Mistakes: ${totalMistakes}`;
       playWhispers();
       setTimeout(() => {
-        inputElement.value = '';
-        messageElement.textContent = "❌ Mistake! Begin again.";
-        messageElement.style.color = "#f44336";
+        input.value = '';
+        document.getElementById('truthMessage').textContent = "❌ Mistake! Begin again.";
+        document.getElementById('truthMessage').style.color = "#f44336";
       }, 200);
       return;
     }
 
     if (userInput === currentSentence) {
       playChoir();
-      messageElement.textContent = "✅ Truth accepted.";
-      messageElement.style.color = "#4caf50";
+      document.getElementById('truthMessage').textContent = "✅ Truth accepted.";
+      document.getElementById('truthMessage').style.color = "#4caf50";
       setTimeout(() => {
         startTypingGame();
-        messageElement.textContent = "";
+        document.getElementById('truthMessage').textContent = "";
       }, 800);
     }
   });
@@ -362,11 +522,13 @@
     const input = document.getElementById('chaosInput');
     input.value = '';
     input.disabled = false;
-    denyPhase.classList.remove('hidden');
-    acceptPhase.classList.add('hidden');
+    document.getElementById('denyPhase').classList.remove('hidden');
+    document.getElementById('acceptPhase').classList.add('hidden');
+    document.getElementById('confessionPhase').classList.add('hidden');
     setTimeout(() => input.focus(), 100);
 
     let timeLeft = 20;
+    if (localStorage.getItem('owned_extraTime') === 'true') timeLeft += 5;
     const timerMsg = document.getElementById('chaosMessage');
     timerMsg.textContent = `⏳ ${timeLeft}s`;
     timerMsg.style.color = "#e0d7b8";
@@ -380,7 +542,6 @@
         playWhispers();
         timerMsg.textContent = "💀 Time's up. The whispers claim you.";
         input.disabled = true;
-        restartBtn.style.display = "inline-block";
       }
     }, 1000);
   }
@@ -390,9 +551,10 @@
     if (input === currentChaos) {
       clearInterval(chaosTimer);
       playChoir();
-      document.getElementById('chaosMessage').textContent = "👁️ You survived...";
+      const coinsEarned = 20;
+      updateCoins(coinsEarned);
+      document.getElementById('chaosMessage').textContent = `👁️ You survived... +${coinsEarned} coins!`;
       document.getElementById('chaosInput').disabled = true;
-      restartBtn.style.display = "inline-block";
     } else if (input.length > 0 && input.length <= currentChaos.length) {
       if (input !== currentChaos.substring(0, input.length)) {
         playWhispers();
@@ -401,20 +563,8 @@
     }
   });
 
-  function restartGame() {
-    if (chaosTimer) clearInterval(chaosTimer);
-    currentChaos = '';
-    confessionPhase.classList.remove('hidden');
-    acceptPhase.classList.add('hidden');
-    denyPhase.classList.add('hidden');
-    restartBtn.style.display = "none";
-    messageElement.textContent = "";
-    document.getElementById('chaosMessage').textContent = "";
-    totalMistakes = 0;
-    sentencePool = [];
-    allSentencesCompleted = false;
-    inputElement.style.display = 'inline-block';
-  }
+  // Initialize coin display
+  coinCount.textContent = currentCoins;
 </script>
 
 </body>
