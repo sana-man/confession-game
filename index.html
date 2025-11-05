@@ -177,7 +177,7 @@
 </div>
 
 <script>
-  // 🔥 YOUR FIREBASE CONFIG — CORRECT FOR COMPAT SDK
+  // 🔥 YOUR FIREBASE CONFIG — COMPATIBLE WITH PLAIN HTML
   const firebaseConfig = {
     apiKey: "AIzaSyB3Xw3uG61Fovn8O8Zha3U63DHQsmaELB8",
     authDomain: "confession-leaderboard.firebaseapp.com",
@@ -189,7 +189,7 @@
     measurementId: "G-BHMXGV0DE9"
   };
 
-  // Initialize Firebase — COMPAT MODE (works in HTML)
+  // Initialize Firebase — COMPAT MODE (WORKS IN HTML)
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
 
@@ -440,24 +440,25 @@
       const name = prompt("Enter your name for the Hall of Confessors:");
       if (name !== null && name.trim() !== "") {
         saveScore(name, totalMistakes, coinsEarned);
-        setTimeout(() => {
-          document.getElementById('truthMessage').innerHTML = `🕊️ Peace granted. +${coinsEarned} coins!`;
-          document.getElementById('userInput').style.display = 'none';
-        }, 500);
-      } else {
-        document.getElementById('truthMessage').textContent = "🕊️ Peace granted.";
-        document.getElementById('userInput').style.display = 'none';
       }
+      document.getElementById('truthMessage').innerHTML = `🕊️ Peace granted. <button onclick="showLeaderboard()">View Leaderboard</button>`;
+      document.getElementById('userInput').style.display = 'none';
       return;
     }
 
     const currentSentence = sentencePool.shift();
+    if (!currentSentence || typeof currentSentence !== 'string') {
+      console.error("No valid sentence to display!");
+      return;
+    }
+
     document.getElementById('target').innerHTML = '';
     for (let char of currentSentence) {
       const span = document.createElement('span');
       span.textContent = char;
       document.getElementById('target').appendChild(span);
     }
+
     document.getElementById('userInput').value = '';
     document.getElementById('acceptPhase').classList.remove('hidden');
     document.getElementById('denyPhase').classList.add('hidden');
@@ -465,7 +466,7 @@
     setTimeout(() => document.getElementById('userInput').focus(), 100);
   }
 
-  // 🔥 FIXED INPUT LOGIC — READS FROM DOM, NOT GLOBAL VAR
+  // 🔥 FIXED INPUT LISTENER — COMPARES TO DOM, NOT GLOBAL VAR
   document.getElementById('userInput').addEventListener('input', () => {
     if (allSentencesCompleted) return;
 
