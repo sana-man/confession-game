@@ -61,7 +61,6 @@
     }
     button:hover { background: #3f2a15; }
     .hidden { display: none; }
-    /* Leaderboard modal */
     #leaderboard {
       position: fixed;
       top: 50%; left: 50%;
@@ -105,7 +104,7 @@
 </div>
 
 <script>
-  // 🔥 YOUR ACTUAL FIREBASE CONFIG (with databaseURL added) 🔥
+  // 🔥 YOUR FIREBASE CONFIG (from console) 🔥
   const firebaseConfig = {
     apiKey: "AIzaSyB3Xw3uG61Fovn8O8Zha3U63DHQsmaELB8",
     authDomain: "confession-leaderboard.firebaseapp.com",
@@ -203,7 +202,7 @@
 
   const chaosSymbols = "!@#$%^&*()_+-=[]{}|;:,.<>?~`1234567890";
 
-  // === DOM ELEMENTS ===
+  // === DOM ===
   const confessionPhase = document.getElementById('confessionPhase');
   const acceptPhase = document.getElementById('acceptPhase');
   const denyPhase = document.getElementById('denyPhase');
@@ -220,7 +219,7 @@
   let sentencePool = [];
   let allSentencesCompleted = false;
 
-  // === LEADERBOARD FUNCTIONS ===
+  // === LEADERBOARD ===
   function saveScore(name, mistakes) {
     database.ref('leaderboard').push().set({
       name: name.trim() || 'Anonymous',
@@ -230,6 +229,9 @@
   }
 
   function showLeaderboard() {
+    const existing = document.getElementById('leaderboard');
+    if (existing) existing.remove();
+
     const lb = document.createElement('div');
     lb.id = 'leaderboard';
     lb.innerHTML = `
@@ -281,9 +283,16 @@
       allSentencesCompleted = true;
       targetElement.innerHTML = "✨ You have faced all truths.";
       const name = prompt("Enter your name for the Hall of Confessors:");
-      if (name !== null) saveScore(name, totalMistakes);
-      messageElement.innerHTML = `🕊️ Peace granted. <button onclick="showLeaderboard()">View Leaderboard</button>`;
-      inputElement.style.display = 'none';
+      if (name !== null && name.trim() !== "") {
+        saveScore(name, totalMistakes);
+        setTimeout(() => {
+          messageElement.innerHTML = `🕊️ Peace granted. <button onclick="showLeaderboard()">View Leaderboard</button>`;
+          inputElement.style.display = 'none';
+        }, 500);
+      } else {
+        messageElement.textContent = "🕊️ Peace granted.";
+        inputElement.style.display = 'none';
+      }
       return;
     }
 
