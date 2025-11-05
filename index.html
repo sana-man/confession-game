@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Last Confession: Truth or Trial</title>
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK - Compat mode for plain HTML -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
@@ -38,22 +38,14 @@
       border-radius: 4px;
       outline: none;
     }
-    #userInput::placeholder, #chaosInput::placeholder {
-      color: #4a4a6a;
-    }
     .correct { color: #4caf50; }
     .error { color: #f44336; }
     h1 {
       color: #d4af37;
       text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
     }
-    #message, #chaosMessage, #truthMessage {
-      margin-top: 20px;
-      font-style: italic;
-      min-height: 24px;
-    }
     #mistakeCounter {
-      margin-top: 10px;
+      margin: 15px 0;
       font-size: 16px;
       color: #ff5722;
     }
@@ -67,9 +59,7 @@
       cursor: pointer;
       border-radius: 4px;
     }
-    button:hover {
-      background: #3f2a15;
-    }
+    button:hover { background: #3f2a15; }
     .hidden { display: none; }
     /* Leaderboard modal */
     #leaderboard {
@@ -83,9 +73,6 @@
       color: #e0d7b8;
       z-index: 1000;
     }
-    #leaderboard button {
-      margin-top: 15px;
-    }
   </style>
 </head>
 <body>
@@ -93,23 +80,20 @@
 <div id="container">
   <h1>🕯️ Last Confession: Truth or Trial</h1>
 
-  <!-- PHASE 1: Confessional -->
   <div id="confessionPhase">
     <p><em>"You know what you did... Do you accept your truth?"</em></p>
     <button onclick="choosePath(true)">✅ I Accept — Face the Truth</button>
     <button onclick="choosePath(false)">❌ I Deny — Test My Will</button>
   </div>
 
-  <!-- PHASE 2: Accept → Typing Game -->
   <div id="acceptPhase" class="hidden">
     <p>Type the sentence exactly. One mistake? Start over.</p>
     <div id="target"></div>
     <input type="text" id="userInput" placeholder="Start typing..." autocomplete="off" />
-    <div id="truthMessage"></div>
     <div id="mistakeCounter">Mistakes: 0</div>
+    <div id="truthMessage"></div>
   </div>
 
-  <!-- PHASE 3: Deny → Symbol Chaos -->
   <div id="denyPhase" class="hidden">
     <p><strong>Punishment:</strong> Type the symbols before time runs out... (20 seconds)</p>
     <div id="chaosDisplay"></div>
@@ -121,18 +105,19 @@
 </div>
 
 <script>
-  // 🔥 REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG 🔥
+  // 🔥 YOUR ACTUAL FIREBASE CONFIG (with databaseURL added) 🔥
   const firebaseConfig = {
-    apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    apiKey: "AIzaSyB3Xw3uG61Fovn8O8Zha3U63DHQsmaELB8",
     authDomain: "confession-leaderboard.firebaseapp.com",
     databaseURL: "https://confession-leaderboard-default-rtdb.firebaseio.com",
     projectId: "confession-leaderboard",
-    storageBucket: "confession-leaderboard.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef1234567890abcdef"
+    storageBucket: "confession-leaderboard.firebasestorage.app",
+    messagingSenderId: "437907861763",
+    appId: "1:437907861763:web:ff1bae3ee8f12a736ff936",
+    measurementId: "G-BHMXGV0DE9"
   };
 
-  // Initialize Firebase
+  // Initialize Firebase (compat mode for HTML)
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
 
@@ -200,7 +185,7 @@
     voiceOsc.stop(audioCtx.currentTime + 0.7);
   }
 
-  // === SENTENCES ===
+  // === GAME DATA ===
   const originalSentences = [
     "The truth is a mirror dropped from heaven.",
     "In silence, the mountain speaks.",
@@ -218,15 +203,15 @@
 
   const chaosSymbols = "!@#$%^&*()_+-=[]{}|;:,.<>?~`1234567890";
 
-  // === DOM ===
+  // === DOM ELEMENTS ===
   const confessionPhase = document.getElementById('confessionPhase');
   const acceptPhase = document.getElementById('acceptPhase');
   const denyPhase = document.getElementById('denyPhase');
   const restartBtn = document.getElementById('restartBtn');
   const targetElement = document.getElementById('target');
   const inputElement = document.getElementById('userInput');
-  const messageElement = document.getElementById('truthMessage');
   const mistakeCounter = document.getElementById('mistakeCounter');
+  const messageElement = document.getElementById('truthMessage');
 
   let currentSentence = '';
   let currentChaos = '';
@@ -259,8 +244,8 @@
       .limitToFirst(10)
       .once('value', (snapshot) => {
         const rankings = document.getElementById('rankings');
+        rankings.innerHTML = '';
         if (snapshot.exists()) {
-          rankings.innerHTML = '';
           snapshot.forEach(child => {
             const data = child.val();
             const li = document.createElement('li');
@@ -295,11 +280,8 @@
     if (sentencePool.length === 0) {
       allSentencesCompleted = true;
       targetElement.innerHTML = "✨ You have faced all truths.";
-      
-      // Prompt for name and save
       const name = prompt("Enter your name for the Hall of Confessors:");
       if (name !== null) saveScore(name, totalMistakes);
-      
       messageElement.innerHTML = `🕊️ Peace granted. <button onclick="showLeaderboard()">View Leaderboard</button>`;
       inputElement.style.display = 'none';
       return;
@@ -321,7 +303,6 @@
 
   inputElement.addEventListener('input', () => {
     if (allSentencesCompleted) return;
-
     const userInput = inputElement.value;
     const spans = targetElement.querySelectorAll('span');
     spans.forEach(span => span.classList.remove('correct', 'error'));
@@ -344,20 +325,20 @@
       playWhispers();
       setTimeout(() => {
         inputElement.value = '';
-        messageElement.textContent = "❌ Mistake! Begin again from the start.";
+        messageElement.textContent = "❌ Mistake! Begin again.";
         messageElement.style.color = "#f44336";
-      }, 300);
+      }, 200);
       return;
     }
 
     if (userInput === currentSentence) {
       playChoir();
-      messageElement.textContent = "✅ Truth accepted. Next confession...";
+      messageElement.textContent = "✅ Truth accepted.";
       messageElement.style.color = "#4caf50";
       setTimeout(() => {
         startTypingGame();
         messageElement.textContent = "";
-      }, 1000);
+      }, 800);
     }
   });
 
